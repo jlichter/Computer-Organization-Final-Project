@@ -310,10 +310,50 @@ void iplc_sim_push_pipeline_stage()
 		int inserted_nop = 0;
 		if (!iplc_sim_trap_address(pipeline[MEM].stage.lw.data_address))
 		{
-			//1 nop per delay cycle - no out of order execution or forwarding, so we simply have to stall for that long
+			//1 nop per delay cycle - no out of order execution or forwarding, so we just have to stall for that long
 			inserted_nop += CACHE_MISS_DELAY;
 			pipeline_cycles += CACHE_MISS_DELAY;
 		}
+		
+		//check if forwarding is necessary
+		//the following could really all be one if statement (the body is the same) but no one wants to read that
+		//not sure if this is really done, but I think I got all the load-use cases
+		int dest_reg = pipeline[MEM].stage.lw.dest_reg;
+		if(pipeline[ALU].itype == RTYPE)
+		{
+			if(pipeline[ALU].stage.rtype.reg1 == dest_reg || pipeline[ALU].stage.rtype.reg2_or_constant == dest_reg)
+			{
+				//this is a load-use hazard; we can forward from MEM to ALU but one stall is still necessary.
+				++inserted_nop;
+				++pipeline_cycles;
+			}
+		}
+		else if(pipeline[ALU].itype == LW)
+		{
+			if(pipeline[ALU].stage.lw.base_reg == dest_reg)
+			{
+				//another load-use hazard
+				++inserted_nop;
+				++pipeline_cycles;
+			}
+		}
+		else if(pipeline[ALU].itype == SW)
+		{
+			if(pipeline[ALU].stage.sw.base_reg == dest_reg || pipeline[ALU].stage.sw.src_reg == dest_reg)
+			{
+				++inserted_nop;
+				++pipeline_cycles;
+			}
+		}
+		else if(pipeline[ALU].itype == BRANCH)
+		{
+			if(pipeline[ALU].stage.branch.reg1 == dest_reg || pipeline[ALU].stage.branch.reg2 == dest_reg)
+			{
+				++inserted_nop;
+				++pipeline_cycles;
+			}
+		}
+	
 		instruction_count += inserted_nop;
 	}
 
@@ -323,7 +363,6 @@ void iplc_sim_push_pipeline_stage()
 		int inserted_nop = 0;
 		if (!iplc_sim_trap_address(pipeline[MEM].stage.sw.data_address))
 		{
-			//1 nop per delay cycle - no out of order execution or forwarding, so we simply have to stall for that long
 			inserted_nop += CACHE_MISS_DELAY;
 			pipeline_cycles += CACHE_MISS_DELAY;
 		}
