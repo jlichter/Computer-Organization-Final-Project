@@ -299,7 +299,26 @@ void iplc_sim_push_pipeline_stage()
 	/* 2. Check for BRANCH and correct/incorrect Branch Prediction */
 	if (pipeline[DECODE].itype == BRANCH)
 	{
-		int branch_taken = 0;
+		branch_count++; //ncrement amount of branches 
+
+        	//if the instruction is not the instruction at the branch target address and not the address of
+        	//the instruction following the branch, the branch is taken 
+        	if(pipeline[DECODE].instruction_address != pipeline[FETCH].instruction_address &&
+            	pipeline[FETCH].instruction_address != pipeline[DECODE].instruction_address + 4){
+
+            		branch_taken = 1;
+           
+        	}
+
+        	//if the prediction was correct 
+        	if(branch_taken == branch_predict_taken){
+            		correct_branch_predictions++; //increment counter of branch predictions 
+        	}else{
+
+            		//pipeline[FETCH].instruction_address = NOP; //flush the next instruction already fetched
+            		pipeline_cycles++; //one-cycle penalty 
+
+        }
 	}
 
 	/* 3. Check for LW delays due to use in ALU stage and if data hit/miss
