@@ -46,6 +46,8 @@ typedef struct cache_line {
 // a valid bit
 // a tag
 // a method for handling varying levels of associativity
+	//TODO
+	
 // a method for selecting which item in the cache is going to be replaced
 	block_t * blocks; // multiple blocks with associativity sorting
 	unsigned int * replacement;

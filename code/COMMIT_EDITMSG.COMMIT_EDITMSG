@@ -1,0 +1,100 @@
+Added block and cache_line defs
+
+# --------------
+# Please enter the commit message for your changes. Everything below
+# this paragraph is ignored, and an empty message aborts the commit.
+# Just close the window to accept your message.
+diff --git a/code/iplc-sim b/code/iplc-sim
+index e579a6b..33931b9 100755
+Binary files a/code/iplc-sim and b/code/iplc-sim differ
+diff --git a/code/iplc-sim.c b/code/iplc-sim.c
+index 02942e1..2fe5c7c 100755
+--- a/code/iplc-sim.c
++++ b/code/iplc-sim.c
+@@ -36,13 +36,20 @@ void iplc_sim_process_pipeline_nop();
+ // Outout performance results
+ void iplc_sim_finalize();
+ 
+-typedef struct cache_line
+-{
++typedef struct block {
++	int bit;
++	int tag;
++} block_t;
++
++typedef struct cache_line {
+ // Your data structures for implementing your cache should include:
+ // a valid bit
+ // a tag
+ // a method for handling varying levels of associativity
+ // a method for selecting which item in the cache is going to be replaced
++	block_t * blocks; // multiple blocks with associativity sorting
++	unsigned int * replacement;
++
+ } cache_line_t;
+ 
+ cache_line_t *cache = NULL;
+@@ -170,6 +177,7 @@ void iplc_sim_init(int index, int blocksize, int assoc)
+ 	// Dynamically create our cache based on the information the user entered
+ 	for (i = 0; i < (1 << index); i++)
+ 	{
++		
+ 	}
+ 
+ 	// init the pipeline -- set all data to zero and instructions to NOP
+@@ -187,6 +195,7 @@ void iplc_sim_init(int index, int blocksize, int assoc)
+ void iplc_sim_LRU_replace_on_miss(int index, int tag)
+ {
+ 	/* You must implement this function */
++
+ }
+ 
+ /*
+@@ -297,21 +306,21 @@ void iplc_sim_push_pipeline_stage()
+ 	}
+ 
+ 	/* 2. Check for BRANCH and correct/incorrect Branch Prediction */
+-	if (pipeline[DECODE].itype == BRANCH)
+-	{
+-		//if the instruction is not the instruction at the branch target address and not the address of the instruction
+-		//following the branch, the branch is taken 
+-		if(pipeline[DECODE].instruction_address != pipeline[FETCH].instruction_address &&
+-		   pipeline[FETCH].instruction_address != pipeline[DECODE].instruction_address + 4){
++	// if (pipeline[DECODE].itype == BRANCH)
++	// {
++	// 	//if the instruction is not the instruction at the branch target address and not the address of the instruction
++	// 	//following the branch, the branch is taken 
++	// 	if(pipeline[DECODE].instruction_address != pipeline[FETCH].instruction_address &&
++	// 	   pipeline[FETCH].instruction_address != pipeline[DECODE].instruction_address + 4){
+ 			
+-			branch_taken = 1; //the branch has been taken 
+-		}
++	// 		branch_taken = 1; //the branch has been taken 
++	// 	}
+ 		
+-		//if the prediction was correct
+-		if(branch_taken == branch_predict_taken){
+-			correct_branch_instructions++; //incrmeent counter of branch predictions
+-		}else{
+-		//restart the execution by fetching the instruction at the branch target address 
++	// 	//if the prediction was correct
++	// 	if(branch_taken == branch_predict_taken){
++	// 		correct_branch_instructions++; //incrmeent counter of branch predictions
++	// 	}else{
++	// 	//restart the execution by fetching the instruction at the branch target address 
+ 			
+ 			
+ 			
+@@ -319,9 +328,9 @@ void iplc_sim_push_pipeline_stage()
+ 			
+ 			
+ 			
+-			pipeline_cycles++; //one-cycle penalty 
+-		}
+-	}
++	// 		pipeline_cycles++; //one-cycle penalty 
++	// 	}
++	// }
+ 
+ 	/* 3. Check for LW delays due to use in ALU stage and if data hit/miss
+ 	 *    add delay cycles if needed.
