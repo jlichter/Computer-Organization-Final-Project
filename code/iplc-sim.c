@@ -40,9 +40,15 @@ typedef struct cache_line
 {
 // Your data structures for implementing your cache should include:
 // a valid bit
+unsigned int validBit;
 // a tag
+unsigned int tag;
 // a method for handling varying levels of associativity
+	//TODO
+	
 // a method for selecting which item in the cache is going to be replaced
+	//TODO
+
 } cache_line_t;
 
 cache_line_t *cache = NULL;
