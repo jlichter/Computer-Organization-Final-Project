@@ -229,9 +229,8 @@ void iplc_sim_LRU_update_on_hit(int index, int assoc_entry)
 	int i;
 	
 	//We need to be careful not to overwrite any data.
-	//If we just move everything back, the block that has just been accessed will be overwritten!
+	//If we just move everything back, the block that has just been accessed will be overwritten
 	block_t temp = cache[index].blocks[assoc_entry];
-	
 	
 	//The accessed entry should percolate up through the cache to reflect
 	//that it is now the most recently used entry. First we move everything back to make space:
@@ -240,7 +239,7 @@ void iplc_sim_LRU_update_on_hit(int index, int assoc_entry)
 		cache[index].blocks[i] = cache[index].blocks[i+1];
 		cache[index].replacement[i] = cache[index].replacement[i+1];
 	}
-	cache[index].blocks[cache_assoc-1] = cache[index].blocks[assoc_entry];
+	cache[index].blocks[cache_assoc-1] = temp;
 	cache[index].replacement[cache_assoc -1] = 0;
 }
 
