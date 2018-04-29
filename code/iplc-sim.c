@@ -213,6 +213,12 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag)
 	//Now we can load the block into our cache, though we don't actually write the data: just the tag and valid bit
 	cache[index].blocks[cache_assoc].tag = tag;
 	cache[index].blocks[cache_assoc].bit = 1;
+	
+	//CONSIDER: Our current solution works, but the replacement variable is unused! 
+	//It's redundant with the way the data is ordered (since we store LRU at index 0). 
+	//We should either not order the data, and just use the replacement variable,
+	//or get rid of the replacement variable. (Personally I wouldn't reorder the data since it wouldn't be practical in a real cache.)
+	
 }
 
 /*
