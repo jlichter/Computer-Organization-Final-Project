@@ -213,10 +213,6 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag)
 	//Now we can load the block into our cache, though we don't actually write the data: just the tag and valid bit
 	cache[index].blocks[cache_assoc].tag = tag;
 	cache[index].blocks[cache_assoc].bit = 1;
-		
-	//Update info
-	cache_access++;
-	cache_miss++;
 }
 
 /*
@@ -244,10 +240,6 @@ void iplc_sim_LRU_update_on_hit(int index, int assoc_entry)
 	//Note that it was overwritten in the loop above, so we stored it in a temp variable.
 	cache[index].blocks[cache_assoc] = temp;
 	cache[index].replacement[cache_assoc] = 0;
-
-	//Update info
-	cache_access++;
-	cache_hit++;
 }
 
 /*
@@ -261,26 +253,46 @@ int iplc_sim_trap_address(unsigned int address)
 	int i = 0, index = 0;
 	int tag = 0;
 	int hit = 0;
-
+	
 	// create mask based on logic in text book
 	int mask = ((1 << (cache_index)) - 1);
 	//create index based on logic in text book
 	index = temp >> cache_blockoffsetbits & mask;
 
 	// Call the appropriate function for a miss or hit
-	for( i = 0; i < cache_assoc; i++){
-		//Calls hit
-		if(cache[index].assoc[i].tag == tag){
+	for( i = 0; i < cache_assoc; i++)
+	{
+		//If the tags match, it is a hit.
+		if(cache[index].assoc[i].tag == tag)
+		{
 			hit = 1;
-			iplc_sim_LRU_update_on_hit(index, i);
+			++cache_hits;
+			
+			//We only need to update LRU info if the cache is associative (cache_assoc > 1)
+			//We could call it anyway, but the function does nothing (just writes variables and wastes time)
+			if(cache_assoc > 1)
+			{
+				iplc_sim_LRU_update_on_hit(index, i);
+			}
+			
 			i = cache_assoc;
 		}
 	}
 	//Did not hit, therefore call miss
-	if(!hit){
-		iplc_sim_LRU_replace_on_miss(index, tag);
+	if(!hit)
+	{
+		++cache_misses;
+		
+		//Only need to update LRU data if the cache is associative
+		if(cache_assoc > 1)
+		{
+			iplc_sim_LRU_replace_on_miss(index, tag);
+		}
 	}
-
+	
+	//update counter
+	++cache_access;
+	
 	/* expects you to return 1 for hit, 0 for miss */
 	return hit;
 }
