@@ -48,7 +48,7 @@ typedef struct cache_line {
 // a method for handling varying levels of associativity
 // a method for selecting which item in the cache is going to be replaced
 	block_t * blocks;
-	unsigned int * replacement;
+	// unsigned int * replacement;
 
 } cache_line_t;
 
@@ -177,11 +177,11 @@ void iplc_sim_init(int index, int blocksize, int assoc)
 	// Dynamically create our cache based on the information the user entered
 	for (i = 0; i < (1 << index); i++) {
 		cache[i].blocks = (block_t *)malloc((sizeof(block_t) * cache_assoc));
-		cache[i].replacement = (unsigned int *)malloc((sizeof(unsigned int) * cache_assoc));
+		// cache[i].replacement = (unsigned int *)malloc((sizeof(unsigned int) * cache_assoc));
 		for (j=0; j<cache_assoc; j++) {
 			cache[i].blocks[j].bit = 0;
 			cache[i].blocks[j].tag = 0;
-			cache[i].replacement[j] = j;
+			// cache[i].replacement[j] = j;
 		}
 	}
 
@@ -204,14 +204,14 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag)
 	//First we have to make space by moving everything forward.
 	//This overwrites the entry at index 0, the intended effect.
 	for(; i < cache_assoc; ++i) {
-		cache[index].replacement[i-1] = cache[index].replacement[i];
+		// cache[index].replacement[i-1] = cache[index].replacement[i];
 		cache[index].blocks[i-1] = cache[index].blocks[i];
 	}
 	
 	//Now we can load the block into our cache, though we don't actually write the data: just the tag and valid bit
 	cache[index].blocks[cache_assoc-1].tag = tag;
 	cache[index].blocks[cache_assoc-1].bit = 1;
-	cache[index].replacement[cache_assoc-1] = 0;
+	// cache[index].replacement[cache_assoc-1] = 0;
 
 	cache_access++;
     cache_miss++;
@@ -241,10 +241,10 @@ void iplc_sim_LRU_update_on_hit(int index, int assoc_entry)
 	for(i = assoc_entry; i < (cache_assoc - 1); ++i)
 	{
 		cache[index].blocks[i] = cache[index].blocks[i+1];
-		cache[index].replacement[i] = cache[index].replacement[i+1];
+		// cache[index].replacement[i] = cache[index].replacement[i+1];
 	}
 	cache[index].blocks[cache_assoc-1] = cache[index].blocks[assoc_entry];
-	cache[index].replacement[cache_assoc -1] = 0;
+	// cache[index].replacement[cache_assoc -1] = 0;
 
 	//Update info
 	cache_access++;
@@ -270,29 +270,21 @@ int iplc_sim_trap_address(unsigned int address)
 	tag = (address >> cache_blockoffsetbits) >> cache_index;
 
 	// Call the appropriate function for a miss or hit
-	for (; i < cache_assoc; i++) {
+	for (; i < cache_assoc; ++i) {
 		//Calls hit
 		if (cache[index].blocks[i].tag == tag) {
 			hit = 1;
 			++cache_hit;
-			
 			//We only need to update LRU info if the cache is associative (cache_assoc > 1)
 			//We could call it anyway, but the function does nothing (just writes variables and wastes time)
-			if(cache_assoc > 1)
-			{
-				iplc_sim_LRU_update_on_hit(index, i);
-			}
-			
-			i = cache_assoc;
+			if (cache_assoc > 1) iplc_sim_LRU_update_on_hit(index, i);
+			break;
 		}
 	}
 	if (!hit) ++cache_miss;
-	if (!hit && cache_assoc > 1) {
-		iplc_sim_LRU_replace_on_miss(index, tag);
-	}
+	if (!hit && cache_assoc > 1) iplc_sim_LRU_replace_on_miss(index, tag);
 
-
-	cache_access++;
+	++cache_access;
 	/* expects you to return 1 for hit, 0 for miss */
 	return hit;
 }
