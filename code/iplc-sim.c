@@ -379,7 +379,7 @@ void iplc_sim_push_pipeline_stage()
         	//the instruction following the branch, the branch was taken 
         	if(pipeline[FETCH].instruction_address != pipeline[DECODE].instruction_address + 4)
 		{
-            		branch_taken = 1; //branch is taken 
+            		int branch_taken = 1; //branch is taken 
         	}
 
         	//if the prediction was correct 
