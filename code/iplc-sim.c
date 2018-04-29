@@ -315,10 +315,13 @@ void iplc_sim_push_pipeline_stage()
         	}
 		else
 		{
-			//An incorrect branch prediction is caught in the execute stage.
-			//The proceeding instructions are reset and the new one queued (it is not loaded directly into FETCH).
-			//since it occurs in the execute stage, 2 incorrect instructions have been loaded and must be changed to NOP
-            		pipeline_cycles += 2;
+			/* 
+			 * An incorrect branch prediction is caught in the execute stage.
+			 * The proceeding instructions are reset and the PC is updated.
+			 * Since it it is detected in the execute stage,
+			 * 2 incorrect instructions have been loaded and must be changed to NOP.
+            		 */
+			pipeline_cycles += 2;
         	}
 	}
 
@@ -335,15 +338,16 @@ void iplc_sim_push_pipeline_stage()
 			pipeline_cycles += CACHE_MISS_DELAY;
 		}
 		
-		//check if forwarding is necessary
-		//the following could really all be one if statement (the body is the same) but no one wants to read that
+		/*check if forwarding is necessary
+		the following could really all be one if statement (the body is the same) but no one wants to read that
 		
-		//Since we are currently loading into a register, the next instruction must wait for access (if it uses the same register).
-		//The multiple IF statements are due to the fact that each instruction has its own type, and checking for register equality
-		//requires that we specify the instruction type (not all instructions have the same arguments).
+		Since we are currently loading into a register, the next instruction must wait for access (if it uses the same register).
+		The multiple IF statements are due to the fact that each instruction has its own type, and checking for register equality
+		requires that we specify the instruction type (not all instructions have the same arguments).
 		
-		//Normally, the load-use hazard results in a 2 cycle delay. With forwarding, the next instruction can get
-		//its data directly from (MEM), but still has to wait one cycle since the information is simply not available when it is needed.
+		Normally, the load-use hazard results in a 2 cycle delay. With forwarding, the next instruction can get
+		its data directly from (MEM), but still has to wait one cycle since the information is simply not available when it is needed.
+		*/
 		int dest_reg = pipeline[MEM].stage.lw.dest_reg;
 		if(pipeline[ALU].itype == RTYPE)
 		{
