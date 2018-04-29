@@ -379,29 +379,29 @@ void iplc_sim_push_pipeline_stage()
         	//the instruction following the branch, the branch was taken 
         	if(pipeline[FETCH].instruction_address != pipeline[DECODE].instruction_address + 4)
 		{
-            		int branch_taken = 1; //branch is taken 
+            		branch_taken = 1; //branch is taken 
         	}
 
         	//if the prediction was correct 
         	if(branch_taken == branch_predict_taken)
-			{
+		{
             		correct_branch_predictions++; //increment counter of branch predictions 
         	}
 		else
 		{
-						/* 
-		* An incorrect branch prediction is caught in the execute stage.
-		* The proceeding instructions are reset and the PC is updated.
-	        * Since it it is detected in the execute stage,
-        	* 2 incorrect instructions have been loaded and must be changed to NOP.
-            		                       */
-			pipeline[WRITEBACK] = pipeline[ALU]; // WB = ALU
-			pipeline[MEM] = pipeline[ALU]; //MEM = ALU
-			pipeline[ALU] = pipeline[DECODE]; //ALU = DECODE 
-
+			/* 
+			 * An incorrect branch prediction is caught in the execute stage.
+			 * The proceeding instructions are reset and the PC is updated.
+			 * Since it it is detected in the execute stage,
+			 * 2 incorrect instructions have been loaded and must be changed to NOP.
+			 *
+			 * NOTE: this is a simulation based on an instruction trace (i.e. the execution already happened).
+			 * We are not running a processor in real time, so we don't actually insert NOPS or throw out instructions!
+			 * When we see that the 'next instruction' in the trace is not PC+4, that is evidence that NOPS were inserted
+			 * and instructions were thrown out - but it would make no sense to throw out that 'next instruction' itself.
+			 */
 			pipeline_cycles += 2; //incorrect branch prediction adds two cycles 
 			
-			memset(&(pipeline[DECODE]), 0, pipesize); //insert NOP 
         	}
 	}
 
