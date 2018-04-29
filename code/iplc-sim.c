@@ -200,7 +200,22 @@ void iplc_sim_init(int index, int blocksize, int assoc)
  */
 void iplc_sim_LRU_replace_on_miss(int index, int tag)
 {
-	/* You must implement this function */
+	int i;
+	//LRU: least recently used, stored at index 0
+	//Goes through and replaces 
+	for(i = 0; i < (cashe_assoc - 1); i++){
+		chache[index].replacement[i] = cache[index].replacement[i+1];
+		cache[index].assoc[i] = cache[index].assoc[i+1];
+	}
+	
+	//TODO: REPLACE TAG AND VALID BIT 
+	cache[index].assoc[cache_assoc-1].tag = tag;//???????? not sure how to access tag 
+	cache[index].assoc[cache_assoc-1].valid = 1; //????????? not sure how to access valid bit
+	
+	//Update info
+	cache_access++;
+	cache_miss++;
+	
 
 }
 
@@ -210,7 +225,19 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag)
  */
 void iplc_sim_LRU_update_on_hit(int index, int assoc_entry)
 {
-	/* You must implement this function */
+	int i;
+	//Percolates up through the cache
+	for(i = assoc_entry; i < (cache_assoc - 1); i++){
+		cache[index].assoc[i] = cache[index].assoc[i+1];
+		cache[index].replacement[i] = cache[index].replacement[i+1];
+		cache[index].replacement[i]++;
+	}
+	cache[index].assoc[cache_assoc-1] = cache[index].assoc[assoc_entry];
+	cache[index].replacement[cache_assoc -1] = 0;
+
+	//Update info
+	cache_access++;
+	cache_miss++;
 }
 
 /*
@@ -225,7 +252,24 @@ int iplc_sim_trap_address(unsigned int address)
 	int tag = 0;
 	int hit = 0;
 
+	// create mask based on logic in text book
+	int mask = ((1 << (cache_index)) - 1);
+	//create index based on logic in text book
+	index = temp >> cache_blockoffsetbits & mask;
+
 	// Call the appropriate function for a miss or hit
+	for( i = 0; i < cache_assoc; i++){
+		//Calls hit
+		if(cache[index].assoc[i].tag == tag){
+			hit = 1;
+			iplc_sim_LRU_update_on_hit(index, 1);
+			i = cache_assoc;
+		}
+	}
+	//Did not hit, therefore call miss
+	if(!hit){
+		iplc_sim_LRU_replace_on_miss(index, tag);
+	}
 
 	/* expects you to return 1 for hit, 0 for miss */
 	return hit;
