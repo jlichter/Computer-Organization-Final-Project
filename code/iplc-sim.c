@@ -213,9 +213,6 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag)
 	cache[index].blocks[cache_assoc-1].bit = 1;
 	cache[index].replacement[cache_assoc-1] = 0;
 
-	cache_access++;
-    cache_miss++;
-	
 	//CONSIDER: Our current solution works, but the replacement variable is unused! 
 	//It's redundant with the way the data is ordered (since we store LRU at index 0). 
 	//We should either not order the data, and just use the replacement variable,
@@ -245,10 +242,6 @@ void iplc_sim_LRU_update_on_hit(int index, int assoc_entry)
 	}
 	cache[index].blocks[cache_assoc-1] = cache[index].blocks[assoc_entry];
 	cache[index].replacement[cache_assoc -1] = 0;
-
-	//Update info
-	cache_access++;
-	cache_miss++;
 }
 
 /*
