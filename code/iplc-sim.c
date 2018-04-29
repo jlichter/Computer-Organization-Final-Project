@@ -301,7 +301,8 @@ void iplc_sim_push_pipeline_stage()
 {
 	int i;
 	int data_hit = 1;
-
+	int branch_taken;
+	
 	/* 1. Count WRITEBACK stage is "retired" -- This I'm giving you */
 	if (pipeline[WRITEBACK].instruction_address)
 	{
