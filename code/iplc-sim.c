@@ -299,26 +299,27 @@ void iplc_sim_push_pipeline_stage()
 	/* 2. Check for BRANCH and correct/incorrect Branch Prediction */
 	if (pipeline[DECODE].itype == BRANCH)
 	{
-		branch_count++; //ncrement amount of branches 
+		branch_count++; //increment number of branch instructions 
 
-        	//if the instruction is not the instruction at the branch target address and not the address of
-        	//the instruction following the branch, the branch is taken 
-        	if(pipeline[DECODE].instruction_address != pipeline[FETCH].instruction_address &&
-            	pipeline[FETCH].instruction_address != pipeline[DECODE].instruction_address + 4){
-
+        	//if the next instruction is not the address of
+        	//the instruction following the branch, the branch was taken 
+        	if(pipeline[FETCH].instruction_address != pipeline[DECODE].instruction_address + 4)
+		{
             		branch_taken = 1;
-           
         	}
 
         	//if the prediction was correct 
-        	if(branch_taken == branch_predict_taken){
+        	if(branch_taken == branch_predict_taken)
+		{
             		correct_branch_predictions++; //increment counter of branch predictions 
-        	}else{
-
-            		//pipeline[FETCH].instruction_address = NOP; //flush the next instruction already fetched
-            		pipeline_cycles++; //one-cycle penalty 
-
-        }
+        	}
+		else
+		{
+			//An incorrect branch prediction is caught in the execute stage.
+			//The proceeding instructions are reset and the new one queued (it is not loaded directly into FETCH).
+			//since it occurs in the execute stage, 2 incorrect instructions have been loaded and must be changed to NOP
+            		pipeline_cycles += 2;
+        	}
 	}
 
 	/* 3. Check for LW delays due to use in ALU stage and if data hit/miss
@@ -336,28 +337,35 @@ void iplc_sim_push_pipeline_stage()
 		
 		//check if forwarding is necessary
 		//the following could really all be one if statement (the body is the same) but no one wants to read that
-		//not sure if this is really done, but I think I got all the load-use cases
+		
+		//Since we are currently loading into a register, the next instruction must wait for access (if it uses the same register).
+		//The multiple IF statements are due to the fact that each instruction has its own type, and checking for register equality
+		//requires that we specify the instruction type (not all instructions have the same arguments).
+		
+		//Normally, the load-use hazard results in a 2 cycle delay. With forwarding, the next instruction can get
+		//its data directly from (MEM), but still has to wait one cycle since the information is simply not available when it is needed.
 		int dest_reg = pipeline[MEM].stage.lw.dest_reg;
 		if(pipeline[ALU].itype == RTYPE)
 		{
+			//An RTYPE instruction has 2 possible source registers that both must be checked against the load destination.
 			if(pipeline[ALU].stage.rtype.reg1 == dest_reg || pipeline[ALU].stage.rtype.reg2_or_constant == dest_reg)
 			{
-				//this is a load-use hazard; we can forward from MEM to ALU but one stall is still necessary.
 				++inserted_nop;
 				++pipeline_cycles;
 			}
 		}
 		else if(pipeline[ALU].itype == LW)
 		{
+			//LW instructions take their base address from a register; if we have just loaded into that register it is a hazard.
 			if(pipeline[ALU].stage.lw.base_reg == dest_reg)
 			{
-				//another load-use hazard
 				++inserted_nop;
 				++pipeline_cycles;
 			}
 		}
 		else if(pipeline[ALU].itype == SW)
 		{
+			//Same as above, but SW also takes data from a register as an argument.
 			if(pipeline[ALU].stage.sw.base_reg == dest_reg || pipeline[ALU].stage.sw.src_reg == dest_reg)
 			{
 				++inserted_nop;
@@ -366,6 +374,7 @@ void iplc_sim_push_pipeline_stage()
 		}
 		else if(pipeline[ALU].itype == BRANCH)
 		{
+			//Like an RTYPE, branches compare two registers. If either is in use during the MEM stage we must stall.
 			if(pipeline[ALU].stage.branch.reg1 == dest_reg || pipeline[ALU].stage.branch.reg2 == dest_reg)
 			{
 				++inserted_nop;
