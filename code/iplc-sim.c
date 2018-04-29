@@ -165,7 +165,7 @@ void iplc_sim_init(int index, int blocksize, int assoc)
 	printf("   Associativity: %d \n", cache_assoc);
 	printf("   BlockOffSetBits: %d \n", cache_blockoffsetbits);
 	printf("   CacheSize: %lu \n", cache_size);
-
+		// return;
 	if (cache_size > MAX_CACHE_SIZE)
 	{
 		printf("Cache too big. Great than MAX SIZE of %d .... \n", MAX_CACHE_SIZE);
@@ -214,7 +214,6 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag)
 	// cache[index].replacement[cache_assoc-1] = 0;
 	
 	++cache_access;
-	++cache_miss;
 
 	//CONSIDER: Our current solution works, but the replacement variable is unused! 
 	//It's redundant with the way the data is ordered (since we store LRU at index 0). 
@@ -241,12 +240,11 @@ void iplc_sim_LRU_update_on_hit(int index, int assoc_entry)
 		cache[index].blocks[i] = cache[index].blocks[i+1];
 		// cache[index].replacement[i] = cache[index].replacement[i+1];
 	}
-	cache[index].blocks[cache_assoc-1] = cache[index].blocks[assoc_entry];
+	cache[index].blocks[cache_assoc-1] = temp;
 	// cache[index].replacement[cache_assoc -1] = 0;
 
 	//Update info
 	cache_access++;
-	cache_miss++;
 }
 
 /*
@@ -282,7 +280,6 @@ int iplc_sim_trap_address(unsigned int address)
 	if (!hit) ++cache_miss;
 	if (!hit && cache_assoc > 1) iplc_sim_LRU_replace_on_miss(index, tag);
 
-	++cache_access;
 	/* expects you to return 1 for hit, 0 for miss */
 	return hit;
 }
@@ -355,9 +352,8 @@ void iplc_sim_dump_pipeline()
  */
 void iplc_sim_push_pipeline_stage()
 {
-	int i;
-	int data_hit = 1;
-	int branch_taken;
+	// int data_hit = 1;
+	int branch_taken = 0;
 	
 	/* 1. Count WRITEBACK stage is "retired" -- This I'm giving you */
 	if (pipeline[WRITEBACK].instruction_address)
@@ -375,13 +371,13 @@ void iplc_sim_push_pipeline_stage()
 
         	//if the next instruction is not the address of
         	//the instruction following the branch, the branch was taken 
-        	if(pipeline[FETCH].instruction_address != pipeline[DECODE].instruction_address + 4)
+        	if (pipeline[FETCH].instruction_address != pipeline[DECODE].instruction_address + 4)
 		{
             		branch_taken = 1; //branch is taken 
         	}
 
         	//if the prediction was correct 
-        	if(branch_taken == branch_predict_taken)
+        	if (branch_taken == branch_predict_taken)
 		{
             		correct_branch_predictions++; //increment counter of branch predictions 
         	}
