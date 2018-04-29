@@ -212,15 +212,14 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag)
 	cache[index].blocks[cache_assoc-1].tag = tag;
 	cache[index].blocks[cache_assoc-1].bit = 1;
 	// cache[index].replacement[cache_assoc-1] = 0;
-
-	cache_access++;
-    cache_miss++;
 	
+	++cache_access;
+	++cache_miss;
+
 	//CONSIDER: Our current solution works, but the replacement variable is unused! 
 	//It's redundant with the way the data is ordered (since we store LRU at index 0). 
 	//We should either not order the data, and just use the replacement variable,
 	//or get rid of the replacement variable. (Personally I wouldn't reorder the data since it wouldn't be practical in a real cache.)
-
 }
 
 /*
@@ -232,9 +231,8 @@ void iplc_sim_LRU_update_on_hit(int index, int assoc_entry)
 	int i;
 	
 	//We need to be careful not to overwrite any data.
-	//If we just move everything back, the block that has just been accessed will be overwritten!
+	//If we just move everything back, the block that has just been accessed will be overwritten
 	block_t temp = cache[index].blocks[assoc_entry];
-	
 	
 	//The accessed entry should percolate up through the cache to reflect
 	//that it is now the most recently used entry. First we move everything back to make space:
@@ -359,7 +357,8 @@ void iplc_sim_push_pipeline_stage()
 {
 	int i;
 	int data_hit = 1;
-
+	int branch_taken;
+	
 	/* 1. Count WRITEBACK stage is "retired" -- This I'm giving you */
 	if (pipeline[WRITEBACK].instruction_address)
 	{
@@ -378,12 +377,12 @@ void iplc_sim_push_pipeline_stage()
         	//the instruction following the branch, the branch was taken 
         	if(pipeline[FETCH].instruction_address != pipeline[DECODE].instruction_address + 4)
 		{
-            		branch_taken = 1;
+            		branch_taken = 1; //branch is taken 
         	}
 
         	//if the prediction was correct 
         	if(branch_taken == branch_predict_taken)
-			{
+		{
             		correct_branch_predictions++; //increment counter of branch predictions 
         	}
 		else
@@ -393,8 +392,14 @@ void iplc_sim_push_pipeline_stage()
 			 * The proceeding instructions are reset and the PC is updated.
 			 * Since it it is detected in the execute stage,
 			 * 2 incorrect instructions have been loaded and must be changed to NOP.
-            		 */
-			pipeline_cycles += 2;
+			 *
+			 * NOTE: this is a simulation based on an instruction trace (i.e. the execution already happened).
+			 * We are not running a processor in real time, so we don't actually insert NOPS or throw out instructions!
+			 * When we see that the 'next instruction' in the trace is not PC+4, that is evidence that NOPS were inserted
+			 * and instructions were thrown out - but it would make no sense to throw out that 'next instruction' itself.
+			 */
+			pipeline_cycles += 2; //incorrect branch prediction adds two cycles 
+			
         	}
 	}
 
