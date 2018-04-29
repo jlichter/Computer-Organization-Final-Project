@@ -199,31 +199,28 @@ void iplc_sim_init(int index, int blocksize, int assoc)
  */
 void iplc_sim_LRU_replace_on_miss(int index, int tag)
 {
-<<<<<<< HEAD
-	for (int i=1; i<cache_assoc; i++) {
-		cache[index].blocks[i-1]= cache[index].blocks[i];
-		cache[index].replacement[i-1] = cache[index].replacement[i];
-	}
-	cache[index].blocks[cache_assoc-1].tag = tag;
-    cache[index].blocks[cache_assoc-1].bit = 1;
-    cache[index].replacement[cache_assoc-1] = 0;
-	cache_access++;
-    cache_miss++;
-=======
-	int i;
+	int i = 1;
 	//LRU: least recently used, stored at index 0
 	//First we have to make space by moving everything forward.
 	//This overwrites the entry at index 0, the intended effect.
-	for(i = 0; i < (cache_assoc - 1); ++i)
-	{
-		cache[index].replacement[i] = cache[index].replacement[i+1];
-		cache[index].blocks[i] = cache[index].blocks[i+1];
+	for(; i < cache_assoc; ++i) {
+		cache[index].replacement[i-1] = cache[index].replacement[i];
+		cache[index].blocks[i-1] = cache[index].blocks[i];
 	}
 	
 	//Now we can load the block into our cache, though we don't actually write the data: just the tag and valid bit
-	cache[index].blocks[cache_assoc].tag = tag;
-	cache[index].blocks[cache_assoc].bit = 1;
->>>>>>> 209548b42e2c658aea5b33e12f798ac32b542a02
+	cache[index].blocks[cache_assoc-1].tag = tag;
+	cache[index].blocks[cache_assoc-1].bit = 1;
+	cache[index].replacement[cache_assoc-1] = 0;
+
+	cache_access++;
+    cache_miss++;
+	
+	//CONSIDER: Our current solution works, but the replacement variable is unused! 
+	//It's redundant with the way the data is ordered (since we store LRU at index 0). 
+	//We should either not order the data, and just use the replacement variable,
+	//or get rid of the replacement variable. (Personally I wouldn't reorder the data since it wouldn't be practical in a real cache.)
+
 }
 
 /*
@@ -233,10 +230,6 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag)
 void iplc_sim_LRU_update_on_hit(int index, int assoc_entry)
 {
 	int i;
-<<<<<<< HEAD
-	//Percolates up through the cache
-	for(i = assoc_entry; i < (cache_assoc - 1); i++){
-=======
 	
 	//We need to be careful not to overwrite any data.
 	//If we just move everything back, the block that has just been accessed will be overwritten!
@@ -247,24 +240,15 @@ void iplc_sim_LRU_update_on_hit(int index, int assoc_entry)
 	//that it is now the most recently used entry. First we move everything back to make space:
 	for(i = assoc_entry; i < (cache_assoc - 1); ++i)
 	{
->>>>>>> 209548b42e2c658aea5b33e12f798ac32b542a02
 		cache[index].blocks[i] = cache[index].blocks[i+1];
 		cache[index].replacement[i] = cache[index].replacement[i+1];
 	}
-<<<<<<< HEAD
 	cache[index].blocks[cache_assoc-1] = cache[index].blocks[assoc_entry];
 	cache[index].replacement[cache_assoc -1] = 0;
 
 	//Update info
 	cache_access++;
 	cache_miss++;
-=======
-	
-	//Then we swap the block we just accessed to the top.
-	//Note that it was overwritten in the loop above, so we stored it in a temp variable.
-	cache[index].blocks[cache_assoc] = temp;
-	cache[index].replacement[cache_assoc] = 0;
->>>>>>> 209548b42e2c658aea5b33e12f798ac32b542a02
 }
 
 /*
