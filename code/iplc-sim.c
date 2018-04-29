@@ -36,13 +36,20 @@ void iplc_sim_process_pipeline_nop();
 // Outout performance results
 void iplc_sim_finalize();
 
-typedef struct cache_line
-{
+typedef struct block {
+	int bit;
+	int tag;
+} block_t;
+
+typedef struct cache_line {
 // Your data structures for implementing your cache should include:
 // a valid bit
 // a tag
 // a method for handling varying levels of associativity
 // a method for selecting which item in the cache is going to be replaced
+	block_t * blocks;
+	unsigned int * replacement;
+
 } cache_line_t;
 
 cache_line_t *cache = NULL;
@@ -168,8 +175,15 @@ void iplc_sim_init(int index, int blocksize, int assoc)
 	cache = (cache_line_t *) malloc((sizeof(cache_line_t) * 1 << index));
 
 	// Dynamically create our cache based on the information the user entered
-	for (i = 0; i < (1 << index); i++)
-	{
+	for (i = 0; i < (1 << index); i++) {
+		cache[i].blocks = (block_t *)malloc((sizeof(block_t) * cache_assoc));
+		cache[i].replacement = (unsigned int *)malloc((sizeof(unsigned int) * cache_assoc));
+		for (j=0; j<cache_assoc; j++) {
+			cache[i].blocks[j].bit = 0;
+			cache[i].blocks[j].tag = 0;
+			cache[i].replacement[j] = j;
+		}
+
 	}
 
 	// init the pipeline -- set all data to zero and instructions to NOP
@@ -187,6 +201,7 @@ void iplc_sim_init(int index, int blocksize, int assoc)
 void iplc_sim_LRU_replace_on_miss(int index, int tag)
 {
 	/* You must implement this function */
+
 }
 
 /*
