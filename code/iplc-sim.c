@@ -183,7 +183,6 @@ void iplc_sim_init(int index, int blocksize, int assoc)
 			cache[i].blocks[j].tag = 0;
 			cache[i].replacement[j] = j;
 		}
-
 	}
 
 	// init the pipeline -- set all data to zero and instructions to NOP
@@ -200,8 +199,15 @@ void iplc_sim_init(int index, int blocksize, int assoc)
  */
 void iplc_sim_LRU_replace_on_miss(int index, int tag)
 {
-	/* You must implement this function */
-
+	for (int i=1; i<cache_assoc; i++) {
+		cache[index].blocks[i-1]= cache[index].blocks[i];
+		cache[index].replacement[i-1] = cache[index].replacement[i];
+	}
+	cache[index].blocks[cache_assoc-1].tag = tag;
+    cache[index].blocks[cache_assoc-1].bit = 1;
+    cache[index].replacement[cache_assoc-1] = 0;
+	cache_access++;
+    cache_miss++;
 }
 
 /*
@@ -211,6 +217,7 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag)
 void iplc_sim_LRU_update_on_hit(int index, int assoc_entry)
 {
 	/* You must implement this function */
+	
 }
 
 /*
@@ -227,6 +234,8 @@ int iplc_sim_trap_address(unsigned int address)
 
 	// Call the appropriate function for a miss or hit
 
+
+	cache_access++;
 	/* expects you to return 1 for hit, 0 for miss */
 	return hit;
 }
