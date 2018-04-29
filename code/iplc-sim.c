@@ -202,21 +202,21 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag)
 {
 	int i;
 	//LRU: least recently used, stored at index 0
-	//Goes through and replaces 
-	for(i = 0; i < (cashe_assoc - 1); i++){
-		chache[index].replacement[i] = cache[index].replacement[i+1];
-		cache[index].assoc[i] = cache[index].assoc[i+1];
+	//First we have to make space by moving everything forward.
+	//This overwrites the entry at index 0, the intended effect.
+	for(i = 0; i < (cache_assoc - 1); ++i)
+	{
+		cache[index].replacement[i] = cache[index].replacement[i+1];
+		cache[index].blocks[i] = cache[index].blocks[i+1];
 	}
 	
-	//TODO: REPLACE TAG AND VALID BIT 
-	cache[index].assoc[cache_assoc-1].tag = tag;//???????? not sure how to access tag 
-	cache[index].assoc[cache_assoc-1].valid = 1; //????????? not sure how to access valid bit
-	
+	//Now we can load the block into our cache, though we don't actually write the data: just the tag and valid bit
+	cache[index].blocks[cache_assoc].tag = tag;
+	cache[index].blocks[cache_assoc].bit = 1;
+		
 	//Update info
 	cache_access++;
 	cache_miss++;
-	
-
 }
 
 /*
@@ -226,18 +226,28 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag)
 void iplc_sim_LRU_update_on_hit(int index, int assoc_entry)
 {
 	int i;
-	//Percolates up through the cache
-	for(i = assoc_entry; i < (cache_assoc - 1); i++){
-		cache[index].assoc[i] = cache[index].assoc[i+1];
+	
+	//We need to be careful not to overwrite any data.
+	//If we just move everything back, the block that has just been accessed will be overwritten!
+	block_t temp = cache[index].blocks[assoc_entry];
+	
+	
+	//The accessed entry should percolate up through the cache to reflect
+	//that it is now the most recently used entry. First we move everything back to make space:
+	for(i = assoc_entry; i < (cache_assoc - 1); ++i)
+	{
+		cache[index].blocks[i] = cache[index].blocks[i+1];
 		cache[index].replacement[i] = cache[index].replacement[i+1];
-		cache[index].replacement[i]++;
 	}
-	cache[index].assoc[cache_assoc-1] = cache[index].assoc[assoc_entry];
-	cache[index].replacement[cache_assoc -1] = 0;
+	
+	//Then we swap the block we just accessed to the top.
+	//Note that it was overwritten in the loop above, so we stored it in a temp variable.
+	cache[index].blocks[cache_assoc] = temp;
+	cache[index].replacement[cache_assoc] = 0;
 
 	//Update info
 	cache_access++;
-	cache_miss++;
+	cache_hit++;
 }
 
 /*
@@ -262,7 +272,7 @@ int iplc_sim_trap_address(unsigned int address)
 		//Calls hit
 		if(cache[index].assoc[i].tag == tag){
 			hit = 1;
-			iplc_sim_LRU_update_on_hit(index, 1);
+			iplc_sim_LRU_update_on_hit(index, i);
 			i = cache_assoc;
 		}
 	}
