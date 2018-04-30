@@ -212,8 +212,6 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag)
 	cache[index].blocks[cache_assoc-1].tag = tag;
 	cache[index].blocks[cache_assoc-1].bit = 1;
 	// cache[index].replacement[cache_assoc-1] = 0;
-	
-	++cache_access;
 
 	//CONSIDER: Our current solution works, but the replacement variable is unused! 
 	//It's redundant with the way the data is ordered (since we store LRU at index 0). 
@@ -242,9 +240,6 @@ void iplc_sim_LRU_update_on_hit(int index, int assoc_entry)
 	}
 	cache[index].blocks[cache_assoc-1] = temp;
 	// cache[index].replacement[cache_assoc -1] = 0;
-
-	//Update info
-	cache_access++;
 }
 
 /*
@@ -277,9 +272,13 @@ int iplc_sim_trap_address(unsigned int address)
 			break;
 		}
 	}
-	if (!hit) ++cache_miss;
-	if (!hit && cache_assoc > 1) iplc_sim_LRU_replace_on_miss(index, tag);
-
+	if (!hit)
+	{
+		 ++cache_miss;
+		iplc_sim_LRU_replace_on_miss(index, tag); //even in a directly mapped cache, we need to load in the data when we miss
+	}
+	++cache_access;
+	
 	/* expects you to return 1 for hit, 0 for miss */
 	return hit;
 }
