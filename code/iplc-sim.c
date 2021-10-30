@@ -212,8 +212,6 @@ void iplc_sim_LRU_replace_on_miss(int index, int tag)
 	cache[index].blocks[cache_assoc-1].tag = tag;
 	cache[index].blocks[cache_assoc-1].bit = 1;
 	// cache[index].replacement[cache_assoc-1] = 0;
-	
-	++cache_access;
 
 	//CONSIDER: Our current solution works, but the replacement variable is unused! 
 	//It's redundant with the way the data is ordered (since we store LRU at index 0). 
@@ -242,9 +240,6 @@ void iplc_sim_LRU_update_on_hit(int index, int assoc_entry)
 	}
 	cache[index].blocks[cache_assoc-1] = temp;
 	// cache[index].replacement[cache_assoc -1] = 0;
-
-	//Update info
-	cache_access++;
 }
 
 /*
@@ -277,9 +272,13 @@ int iplc_sim_trap_address(unsigned int address)
 			break;
 		}
 	}
-	if (!hit) ++cache_miss;
-	if (!hit && cache_assoc > 1) iplc_sim_LRU_replace_on_miss(index, tag);
-
+	if (!hit)
+	{
+		 ++cache_miss;
+		iplc_sim_LRU_replace_on_miss(index, tag); //even in a directly mapped cache, we need to load in the data when we miss
+	}
+	++cache_access;
+	
 	/* expects you to return 1 for hit, 0 for miss */
 	return hit;
 }
@@ -352,7 +351,6 @@ void iplc_sim_dump_pipeline()
  */
 void iplc_sim_push_pipeline_stage()
 {
-	// int data_hit = 1;
 	int branch_taken = 0;
 	
 	/* 1. Count WRITEBACK stage is "retired" -- This I'm giving you */
@@ -371,7 +369,8 @@ void iplc_sim_push_pipeline_stage()
 
         	//if the next instruction is not the address of
         	//the instruction following the branch, the branch was taken 
-        	if (pipeline[FETCH].instruction_address != pipeline[DECODE].instruction_address + 4)
+		//also check to make sure we are not mistaking a NOP for a branch taken
+        	if (pipeline[FETCH].instruction_address != pipeline[DECODE].instruction_address + 4 && pipeline[FETCH].instruction_address != 0)
 		{
             		branch_taken = 1; //branch is taken 
         	}
@@ -404,11 +403,9 @@ void iplc_sim_push_pipeline_stage()
 	 */
 	if (pipeline[MEM].itype == LW)
 	{
-		int inserted_nop = 0;
 		if (!iplc_sim_trap_address(pipeline[MEM].stage.lw.data_address))
 		{
 			//1 nop per delay cycle - no out of order execution or forwarding, so we just have to stall for that long
-			inserted_nop += CACHE_MISS_DELAY;
 			pipeline_cycles += CACHE_MISS_DELAY;
 		}
 		
@@ -428,7 +425,6 @@ void iplc_sim_push_pipeline_stage()
 			//An RTYPE instruction has 2 possible source registers that both must be checked against the load destination.
 			if(pipeline[ALU].stage.rtype.reg1 == dest_reg || pipeline[ALU].stage.rtype.reg2_or_constant == dest_reg)
 			{
-				++inserted_nop;
 				++pipeline_cycles;
 			}
 		}
@@ -437,7 +433,6 @@ void iplc_sim_push_pipeline_stage()
 			//LW instructions take their base address from a register; if we have just loaded into that register it is a hazard.
 			if(pipeline[ALU].stage.lw.base_reg == dest_reg)
 			{
-				++inserted_nop;
 				++pipeline_cycles;
 			}
 		}
@@ -446,7 +441,6 @@ void iplc_sim_push_pipeline_stage()
 			//Same as above, but SW also takes data from a register as an argument.
 			if(pipeline[ALU].stage.sw.base_reg == dest_reg || pipeline[ALU].stage.sw.src_reg == dest_reg)
 			{
-				++inserted_nop;
 				++pipeline_cycles;
 			}
 		}
@@ -455,24 +449,18 @@ void iplc_sim_push_pipeline_stage()
 			//Like an RTYPE, branches compare two registers. If either is in use during the MEM stage we must stall.
 			if(pipeline[ALU].stage.branch.reg1 == dest_reg || pipeline[ALU].stage.branch.reg2 == dest_reg)
 			{
-				++inserted_nop;
 				++pipeline_cycles;
 			}
 		}
-	
-		instruction_count += inserted_nop;
 	}
 
 	/* 4. Check for SW mem acess and data miss .. add delay cycles if needed */
 	if (pipeline[MEM].itype == SW)
 	{
-		int inserted_nop = 0;
 		if (!iplc_sim_trap_address(pipeline[MEM].stage.sw.data_address))
 		{
-			inserted_nop += CACHE_MISS_DELAY;
 			pipeline_cycles += CACHE_MISS_DELAY;
 		}
-		instruction_count += inserted_nop;
 	}
 
 	/* 5. Increment pipe_cycles 1 cycle for normal processing */
